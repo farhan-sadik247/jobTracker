@@ -1,103 +1,256 @@
-import Image from "next/image";
+"use client"
 
-export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+import { useState, useEffect, useCallback } from "react"
+import { Plus, Search, Filter, Calendar, Briefcase } from 'lucide-react'
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import type { JobApplication } from "../lib/types"
+import { formatDate, getDaysUntilDeadline, getStatusColor, getPriorityColor } from "../lib/utils"
+import JobForm from "../components/job-form"
+import JobDetails from "../components/job-details"
+import StatsCards from "../components/stats-cards"
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+export default function Dashboard() {
+  const [jobs, setJobs] = useState<JobApplication[]>([])
+  const [filteredJobs, setFilteredJobs] = useState<JobApplication[]>([])
+  const [loading, setLoading] = useState(true)
+  const [searchTerm, setSearchTerm] = useState("")
+  const [statusFilter, setStatusFilter] = useState("all")
+  const [showJobForm, setShowJobForm] = useState(false)
+  const [selectedJob, setSelectedJob] = useState<JobApplication | null>(null)
+  const [editingJob, setEditingJob] = useState<JobApplication | null>(null)
+
+  const filterJobs = useCallback(() => {
+    let filtered = jobs
+
+    if (statusFilter !== "all") {
+      filtered = filtered.filter((job) => job.status === statusFilter)
+    }
+
+    if (searchTerm) {
+      filtered = filtered.filter(
+        (job) =>
+          job.companyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          job.jobTitle.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          job.location.toLowerCase().includes(searchTerm.toLowerCase()),
+      )
+    }
+
+    setFilteredJobs(filtered)
+  }, [jobs, searchTerm, statusFilter])
+
+  useEffect(() => {
+    fetchJobs()
+  }, [])
+
+  useEffect(() => {
+    filterJobs()
+  }, [filterJobs])
+
+  const fetchJobs = async () => {
+    try {
+      const response = await fetch("/api/jobs?userId=demo-user")
+      const data = await response.json()
+      setJobs(data)
+    } catch (error) {
+      console.error("Failed to fetch jobs:", error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleJobSubmit = async (jobData: Partial<JobApplication>) => {
+    try {
+      if (editingJob) {
+        await fetch(`/api/jobs/${editingJob._id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(jobData),
+        })
+      } else {
+        await fetch("/api/jobs", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ...jobData, userId: "demo-user" }),
+        })
+      }
+
+      fetchJobs()
+      setShowJobForm(false)
+      setEditingJob(null)
+    } catch (error) {
+      console.error("Failed to save job:", error)
+    }
+  }
+
+  const handleDeleteJob = async (jobId: string) => {
+    try {
+      await fetch(`/api/jobs/${jobId}`, { method: "DELETE" })
+      fetchJobs()
+      setSelectedJob(null)
+    } catch (error) {
+      console.error("Failed to delete job:", error)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading your job applications...</p>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      </div>
+    )
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <header className="bg-white shadow-sm border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center py-6">
+            <div className="flex items-center">
+              <Briefcase className="h-8 w-8 text-blue-600 mr-3" />
+              <h1 className="text-2xl font-bold text-gray-900">Job Tracker</h1>
+            </div>
+            <Button onClick={() => setShowJobForm(true)} className="flex items-center gap-2">
+              <Plus className="h-4 w-4" />
+              Add Job Application
+            </Button>
+          </div>
+        </div>
+      </header>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Stats Cards */}
+        <StatsCards jobs={jobs} />
+
+        {/* Filters */}
+        <div className="bg-white rounded-lg shadow-sm p-6 mb-8">
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Input
+                  placeholder="Search companies, positions, or locations..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+            </div>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-full sm:w-48">
+                <Filter className="h-4 w-4 mr-2" />
+                <SelectValue placeholder="Filter by status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="applied">Applied</SelectItem>
+                <SelectItem value="interview">Interview</SelectItem>
+                <SelectItem value="offer">Offer</SelectItem>
+                <SelectItem value="rejected">Rejected</SelectItem>
+                <SelectItem value="accepted">Accepted</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {/* Job Applications Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredJobs.map((job) => (
+            <Card
+              key={job._id}
+              className="hover:shadow-lg transition-shadow cursor-pointer"
+              onClick={() => setSelectedJob(job)}
+            >
+              <CardHeader className="pb-3">
+                <div className="flex justify-between items-start">
+                  <div className="flex-1">
+                    <CardTitle className="text-lg font-semibold text-gray-900 mb-1">{job.jobTitle}</CardTitle>
+                    <p className="text-gray-600 font-medium">{job.companyName}</p>
+                    <p className="text-sm text-gray-500">{job.location}</p>
+                  </div>
+                  <Badge className={getPriorityColor(job.priority)}>{job.priority}</Badge>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <Badge className={getStatusColor(job.status)}>{job.status}</Badge>
+                    <span className="text-sm text-gray-500">{formatDate(job.applicationDate)}</span>
+                  </div>
+
+                  {job.deadline && (
+                    <div className="flex items-center text-sm">
+                      <Calendar className="h-4 w-4 mr-2 text-gray-400" />
+                      <span
+                        className={`${
+                          getDaysUntilDeadline(job.deadline) <= 3 ? "text-red-600 font-medium" : "text-gray-600"
+                        }`}
+                      >
+                        {getDaysUntilDeadline(job.deadline) > 0
+                          ? `${getDaysUntilDeadline(job.deadline)} days left`
+                          : "Deadline passed"}
+                      </span>
+                    </div>
+                  )}
+
+                  <div className="flex items-center justify-between">
+                    <Badge variant="outline" className="text-xs">
+                      {job.jobType}
+                    </Badge>
+                    {job.salary && <span className="text-sm font-medium text-green-600">{job.salary}</span>}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {filteredJobs.length === 0 && (
+          <div className="text-center py-12">
+            <Briefcase className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">No job applications found</h3>
+            <p className="text-gray-600 mb-4">
+              {jobs.length === 0
+                ? "Start tracking your job applications by adding your first one!"
+                : "Try adjusting your search or filter criteria."}
+            </p>
+            {jobs.length === 0 && <Button onClick={() => setShowJobForm(true)}>Add Your First Job Application</Button>}
+          </div>
+        )}
+      </div>
+
+      {/* Job Form Modal */}
+      {showJobForm && (
+        <JobForm
+          job={editingJob}
+          onSubmit={handleJobSubmit}
+          onClose={() => {
+            setShowJobForm(false)
+            setEditingJob(null)
+          }}
+        />
+      )}
+
+      {/* Job Details Modal */}
+      {selectedJob && (
+        <JobDetails
+          job={selectedJob}
+          onClose={() => setSelectedJob(null)}
+          onEdit={(job) => {
+            setEditingJob(job)
+            setShowJobForm(true)
+            setSelectedJob(null)
+          }}
+          onDelete={handleDeleteJob}
+        />
+      )}
     </div>
-  );
+  )
 }
