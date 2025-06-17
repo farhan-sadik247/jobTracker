@@ -1,20 +1,17 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { Plus, Search, Filter, Calendar, Briefcase } from "lucide-react"
+import { Plus, Search, Filter, Calendar, Briefcase } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-
-// import { formatDate, getDaysUntilDeadline, getStatusColor, getPriorityColor } from "@/lib/utils"
-
+import type { JobApplication } from "../lib/types"
+import { formatDate, getDaysUntilDeadline, getStatusColor, getPriorityColor } from "../lib/utils"
+import JobForm from "../components/job-form"
 import JobDetails from "../components/job-details"
 import StatsCards from "../components/stats-cards"
-import { JobApplication } from "../lib/types"
-import JobForm from "../components/job-form"
-import { formatDate, getDaysUntilDeadline, getPriorityColor, getStatusColor } from "../lib/utils"
 
 export default function Dashboard() {
   const [jobs, setJobs] = useState<JobApplication[]>([])
@@ -26,13 +23,32 @@ export default function Dashboard() {
   const [selectedJob, setSelectedJob] = useState<JobApplication | null>(null)
   const [editingJob, setEditingJob] = useState<JobApplication | null>(null)
 
+  const filterJobs = useCallback(() => {
+    let filtered = jobs
+
+    if (statusFilter !== "all") {
+      filtered = filtered.filter((job) => job.status === statusFilter)
+    }
+
+    if (searchTerm) {
+      filtered = filtered.filter(
+        (job) =>
+          job.companyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          job.jobTitle.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          job.location.toLowerCase().includes(searchTerm.toLowerCase()),
+      )
+    }
+
+    setFilteredJobs(filtered)
+  }, [jobs, searchTerm, statusFilter])
+
   useEffect(() => {
     fetchJobs()
   }, [])
 
   useEffect(() => {
     filterJobs()
-  }, [jobs, searchTerm, statusFilter])
+  }, [filterJobs])
 
   const fetchJobs = async () => {
     try {
@@ -45,25 +61,6 @@ export default function Dashboard() {
       setLoading(false)
     }
   }
-
-const filterJobs = useCallback(() => {
-  let filtered = jobs
-
-  if (statusFilter !== "all") {
-    filtered = filtered.filter((job) => job.status === statusFilter)
-  }
-
-  if (searchTerm) {
-    filtered = filtered.filter(
-      (job) =>
-        job.companyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        job.jobTitle.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        job.location.toLowerCase().includes(searchTerm.toLowerCase()),
-    )
-  }
-
-  setFilteredJobs(filtered)
-}, [jobs, searchTerm, statusFilter])
 
   const handleJobSubmit = async (jobData: Partial<JobApplication>) => {
     try {
