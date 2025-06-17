@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Plus, Search, Filter, Calendar, Briefcase } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -46,24 +46,24 @@ export default function Dashboard() {
     }
   }
 
-  const filterJobs = () => {
-    let filtered = jobs
+const filterJobs = useCallback(() => {
+  let filtered = jobs
 
-    if (statusFilter !== "all") {
-      filtered = filtered.filter((job) => job.status === statusFilter)
-    }
-
-    if (searchTerm) {
-      filtered = filtered.filter(
-        (job) =>
-          job.companyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          job.jobTitle.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          job.location.toLowerCase().includes(searchTerm.toLowerCase()),
-      )
-    }
-
-    setFilteredJobs(filtered)
+  if (statusFilter !== "all") {
+    filtered = filtered.filter((job) => job.status === statusFilter)
   }
+
+  if (searchTerm) {
+    filtered = filtered.filter(
+      (job) =>
+        job.companyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        job.jobTitle.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        job.location.toLowerCase().includes(searchTerm.toLowerCase()),
+    )
+  }
+
+  setFilteredJobs(filtered)
+}, [jobs, searchTerm, statusFilter])
 
   const handleJobSubmit = async (jobData: Partial<JobApplication>) => {
     try {

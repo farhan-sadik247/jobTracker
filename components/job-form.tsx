@@ -11,7 +11,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import type { JobApplication, CVSuggestion } from "@/lib/types"
+import { CVSuggestion, JobApplication } from "../lib/types"
+
 
 interface JobFormProps {
   job?: JobApplication | null
@@ -26,15 +27,15 @@ export default function JobForm({ job, onSubmit, onClose }: JobFormProps) {
     jobDescription: "",
     applicationDate: new Date().toISOString().split("T")[0],
     deadline: "",
-    status: "applied" as const,
-    priority: "medium" as const,
+    status: "applied" as "applied" | "interview" | "offer" | "rejected" | "accepted",
+    priority: "medium" as "low" | "medium" | "high",
     jobUrl: "",
     notes: "",
     contactPerson: "",
     contactEmail: "",
     salary: "",
     location: "",
-    jobType: "internship" as const,
+    jobType: "internship" as "internship" | "full-time" | "part-time" | "contract",
   })
 
   const [aiSuggestions, setAiSuggestions] = useState<CVSuggestion | null>(null)
@@ -68,7 +69,12 @@ export default function JobForm({ job, onSubmit, onClose }: JobFormProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    onSubmit(formData)
+    // Convert string dates to Date objects before submission
+    onSubmit({
+      ...formData,
+      applicationDate: new Date(formData.applicationDate),
+      deadline: formData.deadline ? new Date(formData.deadline) : undefined,
+    })
   }
 
   const generateAISuggestions = async () => {
@@ -151,7 +157,7 @@ export default function JobForm({ job, onSubmit, onClose }: JobFormProps) {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="jobType">Job Type</Label>
-                  <Select value={formData.jobType} onValueChange={(value: any) => handleInputChange("jobType", value)}>
+                  <Select value={formData.jobType} onValueChange={(value: string) => handleInputChange("jobType", value)}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -168,7 +174,7 @@ export default function JobForm({ job, onSubmit, onClose }: JobFormProps) {
                   <Label htmlFor="priority">Priority</Label>
                   <Select
                     value={formData.priority}
-                    onValueChange={(value: any) => handleInputChange("priority", value)}
+                    onValueChange={(value: string) => handleInputChange("priority", value)}
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -206,7 +212,7 @@ export default function JobForm({ job, onSubmit, onClose }: JobFormProps) {
 
               <div>
                 <Label htmlFor="status">Status</Label>
-                <Select value={formData.status} onValueChange={(value: any) => handleInputChange("status", value)}>
+                <Select value={formData.status} onValueChange={(value: string) => handleInputChange("status", value)}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>

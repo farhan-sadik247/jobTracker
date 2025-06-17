@@ -1,8 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
-
-
 import clientPromise from "../../../lib/mongodb"
 import { JobApplication } from "../../../lib/types"
+
 
 export async function GET(request: NextRequest) {
   try {
@@ -14,7 +13,7 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get("status")
     const search = searchParams.get("search")
 
-    const query: any = { userId }
+    const query: Record<string, unknown> = { userId }
 
     if (status && status !== "all") {
       query.status = status
@@ -31,7 +30,8 @@ export async function GET(request: NextRequest) {
     const jobs = await db.collection("jobs").find(query).sort({ createdAt: -1 }).toArray()
 
     return NextResponse.json(jobs)
-  } catch (error) {
+  } catch (err) {
+    console.error("Failed to fetch jobs:", err)
     return NextResponse.json({ error: "Failed to fetch jobs" }, { status: 500 })
   }
 }
@@ -57,7 +57,8 @@ export async function POST(request: NextRequest) {
       success: true,
       id: result.insertedId,
     })
-  } catch (error) {
+  } catch (err) {
+    console.error("Failed to create job:", err)
     return NextResponse.json({ error: "Failed to create job" }, { status: 500 })
   }
 }

@@ -1,5 +1,4 @@
 import { type NextRequest, NextResponse } from "next/server"
-
 import { ObjectId } from "mongodb"
 import clientPromise from "../../../../lib/mongodb"
 
@@ -18,7 +17,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     }
 
     return NextResponse.json(job)
-  } catch (error) {
+  } catch (err) {
+    console.error("Failed to fetch job:", err)
     return NextResponse.json({ error: "Failed to fetch job" }, { status: 500 })
   }
 }
@@ -43,7 +43,8 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     }
 
     return NextResponse.json({ success: true })
-  } catch (error) {
+  } catch (err) {
+    console.error("Failed to update job:", err)
     return NextResponse.json({ error: "Failed to update job" }, { status: 500 })
   }
 }
@@ -63,7 +64,8 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     }
 
     return NextResponse.json({ success: true })
-  } catch (error) {
+  } catch (err) {
+    console.error("Failed to delete job:", err)
     return NextResponse.json({ error: "Failed to delete job" }, { status: 500 })
   }
 }
